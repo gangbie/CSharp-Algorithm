@@ -78,6 +78,8 @@
         // n = 100		    1	      100	   10,000
         // n = 1000		    1	     1000	1,000,000
         // Big-O		 O(1)	     O(n)	   O(n^2)
+
+        // O(1) > O(logn) > O(n) > O(nlogn) > O(n^2) > O(2^n) 순으로 우월
         static void Main(string[] args)
         {
             Console.WriteLine("Hello, World!");
