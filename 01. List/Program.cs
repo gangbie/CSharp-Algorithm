@@ -74,7 +74,7 @@ namespace _01._List
 
         static void Main(string[] args)
         {
-            // DataStructure.List<string> list = new DataStructure.List<string>();
+            /*
             List<string> list = new List<string>();
 
             list.Add("1번 데이터");
@@ -101,7 +101,29 @@ namespace _01._List
 
             string? findValue = list.Find(x => x.Contains('4'));
             int findIndex = list.FindIndex(x => x.Contains('1'));
+            */
+
+            DataStructure.List<int> list = new DataStructure.List<int>();
+
+            list.Add(1);
+            list.Add(2);
+            list.Add(3);
+            list.Add(4);
+            list.Add(5);
+
+            list.Remove(2);
+            list.RemoveAt(0);
+
+            list[0] = 10;
+            int intNum = list[0];
+
+            for(int i=0; i < list.Count; i++)
+            {
+                Console.WriteLine(list[i]);
+            }
+
+
         }
-        
+
     }
 }
