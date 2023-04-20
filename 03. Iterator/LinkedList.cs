@@ -1,10 +1,11 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace DataStructure
+namespace Iterator
 {
     public class LinkedListNode<T>
     {
@@ -13,6 +14,7 @@ namespace DataStructure
         internal LinkedListNode<T> next;
         private T item;
 
+        // 아래 세개 무슨 의미인지 파악하기!!
         public LinkedListNode(T value)
         {
             this.list = null;
@@ -42,7 +44,7 @@ namespace DataStructure
         public LinkedListNode<T> Next { get { return next; } }
         public T Value { get { return item; } set { item = value; } }
     }
-    public class LinkedList<T>
+    public class LinkedList<T> : IEnumerable<T>
     {
         private LinkedListNode<T> head;
         private LinkedListNode<T> tail;
@@ -63,13 +65,13 @@ namespace DataStructure
         {
             // 1. 새로 노드 만들기
             LinkedListNode<T> newNode = new LinkedListNode<T>(this, value);
-            
+
             // 2. 연결구조 변경(새로운 노드의 다음 노드를 head로, head의 이전 노드를 새로운 노드로)
-            if(head != null)    // 2-1. head노드가 있을 때
+            if (head != null)    // 2-1. head노드가 있을 때
             {
                 newNode.next = head;
                 head.prev = newNode;
-            // 3. head를 새로 만든 노드로 변경
+                // 3. head를 새로 만든 노드로 변경
                 head = newNode;
             }
             else              // 2-2. head노드가 없을 때
@@ -102,7 +104,7 @@ namespace DataStructure
         }
 
         public void Remove(LinkedListNode<T> node)
-        {   
+        {
             // 예외1 : node가 연결리스트에 포함된 노드가 아닌 경우
             if (node.list != this)
                 throw new InvalidOperationException();
@@ -116,7 +118,7 @@ namespace DataStructure
                 tail = node.prev;
 
             // 1. 연결구조 바꾸기(이전 노드가 내 다음 노드를 next로, 다음 노드가 내 이전 노드를 prev로)
-            if(node.prev != null)
+            if (node.prev != null)
                 node.prev.next = node.next;
             if (node.next != null)
                 node.next.prev = node.prev;
@@ -127,7 +129,7 @@ namespace DataStructure
         public bool Remove(T value)
         {
             LinkedListNode<T> findNode = Find(value);
-            if(findNode != null)
+            if (findNode != null)
             {
                 Remove(findNode);
                 return true;
@@ -153,7 +155,7 @@ namespace DataStructure
                 {
                     target = target.next;
                 }
-                
+
             }
             return null;
         }
@@ -172,7 +174,7 @@ namespace DataStructure
             newNode.next = node;
             newNode.prev = node.prev;
             node.prev = newNode;
-            if(node.prev != null)       // 이전 노드가 없다는 것은 노드가 헤드라는 것
+            if (node.prev != null)       // 이전 노드가 없다는 것은 노드가 헤드라는 것
             {
                 node.prev.next = newNode;
             }
@@ -212,6 +214,69 @@ namespace DataStructure
             return newNode;
         }
 
-        // 링크드리스트 기술면접 조사
+        public IEnumerator<T> GetEnumerator()
+        {
+            return new Enumerator(this);
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return new Enumerator(this);
+        }
+
+        public struct Enumerator : IEnumerator<T>
+        {
+            private LinkedList<T> list;
+            private LinkedListNode<T> node;
+            private int index;
+            private T current;
+
+            internal Enumerator(LinkedList<T> list)
+            {
+                this.list = list;
+                this.node = list.head;
+                this.index = 0;
+                this.current = default(T);
+            }
+
+            public T Current { get { return current; } }
+
+            object IEnumerator.Current
+            {
+                get
+                {
+                    if (index < 0 || index >= list.Count)
+                        throw new InvalidOperationException();
+                    return Current;
+                }
+            }
+
+            public void Dispose() { }
+
+            public bool MoveNext()
+            {
+                if (index < list.Count)
+                {
+                    current = node.Value;
+                    node = node.next;
+                    index++;
+                    return true;
+                }
+                else
+                {
+                    node = null;
+                    current = default(T);
+                    index = list.Count;
+                    return false;
+                }
+            }
+
+            public void Reset()
+            {
+                node = null;
+                index = 0;
+                current = default(T);
+            }
+        }
     }
 }
