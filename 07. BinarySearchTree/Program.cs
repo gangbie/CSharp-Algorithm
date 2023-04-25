@@ -28,7 +28,12 @@
         // 이 경우 탐색영역이 절반으로 줄여지지 않기 때문에 시간복잡도 증가
         // 이러한 현상을 막기 위해 자가균형기능을 추가한 트리의 사용이 일반적
         // 대표적인 방식으로 Red-Black Tree, AVL Tree 등이 있음
+        // 노드의 균형을 맞추기 위해 좌회전, 우회전 기능 사용
 
+        // <트리기반의 자료구조의 순회>
+        // 1. 전위순회 : 노드, 왼쪽, 오른쪽
+        // 2. 중위순회 : 왼쪽, 노드, 오른쪽    <- 이진탐색트리의 순회 : 오름차순 정렬
+        // 3. 후위순회 : 왼쪽, 오른쪽, 노드
         void BinarySearchTree()
         {
             // 키 == 데이터
@@ -69,6 +74,13 @@
 
         static void Main(string[] args)
         {
+            DataStructure.BinarySearchTree<int> bst = new DataStructure.BinarySearchTree<int>();
+
+            bst.Add(3);
+            bst.Add(6);
+            bst.Add(2);
+
+            bst.Print();
         }
 
         
