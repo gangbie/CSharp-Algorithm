@@ -9,10 +9,10 @@ namespace DataStructure
     public class Dictionary<TKey, TValue> where TKey : IEquatable<TKey>
     {
         private const int DefaultCapacity = 1000;
-        
+
         private struct Entry
         {
-            public enum State { None, Using, Deleted}
+            public enum State { None, Using, Deleted }
 
             public State state;
             public TKey key;
@@ -20,106 +20,186 @@ namespace DataStructure
         }
 
         private Entry[] table;
+        private int addCount;
+        private int deleteCount;
 
         public Dictionary()
         {
             table = new Entry[DefaultCapacity];
+            addCount = 0;
+            deleteCount = 0;
         }
 
         public TValue this[TKey key]
         {
             get
             {
-                // 1. key를 index로 해싱
-                int index = Math.Abs(key.GetHashCode() % table.Length);
-
-                // 2. key가 일치하는 데이터가 나올 때 까지 다음으로 이동
-                while (table[index].state == Entry.State.Using)
-                {
-                    // 3-1. 동일한 키값을 찾았을 때 반환하기
-                    if (key.Equals(table[index].key))
-                    {
-                        return table[index].value;
-                    }
-                    // 3-2. 동일한 키값을 못찾고 비어있는 공간을 만났을 때
-                    if (table[index].state == Entry.State.None)
-                    {
-                        break;
-                    }
-                    // 3-3. 다음 index로 이동
-                    index = ++index % table.Length;
-                }
-                throw new KeyNotFoundException();
+                TValue value;
+                if (TryGetValue(key, out value))
+                    return value;
+                else
+                    throw new KeyNotFoundException();
             }
             set
             {
-                // 1. key를 index로 해싱
-                int index = Math.Abs(key.GetHashCode() % table.Length);
-
-                // 2. key가 일치하는 데이터가 나올 때 까지 다음으로 이동
-                while (table[index].state == Entry.State.Using)
-                {
-                    // 3. 동일한 키값을 찾았을 때 덮어쓰기
-                    if (key.Equals(table[index].key))
-                    {
-                        table[index].value = value;
-                        return;
-                    }
-                    if (table[index].state == Entry.State.None)
-                    {
-                        break;
-                    }
-                    index = ++index % table.Length;
-                }
+                TryInsert(key, value, InsertionBehavior.OverrideExist);
             }
         }
 
         public void Add(TKey key, TValue value)
         {
-            // 1. key를 index로 해싱
-            int index = Math.Abs(key.GetHashCode() % table.Length);
+            TryInsert(key, value, InsertionBehavior.ThrowOnExisting);
+        }
 
-            // 2. 사용중이 아닌 index까지 다음으로 이동
-            while (table[index].state == Entry.State.Using)
+        public bool TryAdd(TKey key, TValue value)
+        {
+            return TryInsert(key, value, InsertionBehavior.None);
+        }
+
+        public void Clear()
+        {
+            table = new Entry[DefaultCapacity];
+        }
+
+        public bool ContainsKey(TKey key)
+        {
+            return TryGetValue(key, out var value);
+        }
+
+        public bool TryGetValue(TKey key, out TValue value)
+        {
+            int index = FindIndex(key);
+
+            if (index < 0)
             {
-                // 3-1. 동일한 키값을 찾았을 때 오류(c#은 중복 허용 X)
-                if (key.Equals(table[index].key))
-                {
-                    throw new ArgumentException();
-                }
-                // 3-2. 다음 index로 이동
-                index = ++index % table.Length;
+                value = default(TValue);
+                return false;
             }
-
-            // 4. 사용중이 아닌 index를 발견한 경우 그 위치에 저장
-            table[index].key = key;
-            table[index].value = value;
-            table[index].state = Entry.State.Using;
+            else
+            {
+                value = table[index].value;
+                return true;
+            }
         }
 
         public bool Remove(TKey key)
         {
-            // 1. key를 index로 해싱
-            int index = Math.Abs(key.GetHashCode() % table.Length);
-            
-            // 2. key값과 동일한 데이터를 찾을 때 까지 index 증가
-            while (table[index].state == Entry.State.Using)
+            int index = FindIndex(key);
+
+            if (index < 0)
             {
-                // 3-1. 동일한 키값을 찾았을 때 지운상태로 표시
-                if (key.Equals(table[index].key))
-                {
-                    table[index].state = Entry.State.Deleted;
-                    return true;
-                }
-                // 3-2. 동일한 키값을 못찾고 비어있는 공간을 만났을 때
+                return false;
+            }
+            else
+            {
+                table[index].state = Entry.State.Deleted;
+                deleteCount++;
+                return true;
+            }
+        }
+
+        private enum InsertionBehavior { None, OverrideExist, ThrowOnExisting }
+        private bool TryInsert(TKey key, TValue value, InsertionBehavior behavior)
+        {
+            int index = Math.Abs(key.GetHashCode() % table.Length);
+            int collisionCount = 0;
+            while (true)
+            {
                 if (table[index].state == Entry.State.None)
                 {
                     break;
                 }
-                // 3-3. 다음으로 이동
-                index = ++index % table.Length;
+                else if (table[index].state == Entry.State.Using)
+                {
+                    if (key.Equals(table[index].key))
+                    {
+                        switch (behavior)
+                        {
+                            case InsertionBehavior.OverrideExist:
+                                table[index].key = key;
+                                table[index].value = value;
+                                return true;
+                            case InsertionBehavior.ThrowOnExisting:
+                                throw new ArgumentException();
+                            case InsertionBehavior.None:
+                            default:
+                                return false;
+                        }
+                    }
+                }
+
+                index = (index + 1) % table.Length;
+
+                if (++collisionCount >= table.Length)
+                    throw new InvalidOperationException();
             }
-            return false;
+
+            table[index].state = Entry.State.Using;
+            table[index].key = key;
+            table[index].value = value;
+            addCount++;
+
+            if (addCount + deleteCount > table.Length * 0.7f)
+                ReHashing();
+
+            return true;
+        }
+
+        private int FindIndex(TKey key)
+        {
+            int index = Math.Abs(key.GetHashCode() % table.Length);
+            int collisionCount = 0;
+            while (true)
+            {
+                if (table[index].state == Entry.State.None)
+                {
+                    return -1;
+                }
+                else if (table[index].state == Entry.State.Using)
+                {
+                    if (key.Equals(table[index].key))
+                    {
+                        return index;
+                    }
+                }
+
+                index = (index + 1) % table.Length;
+
+                if (++collisionCount >= table.Length)
+                    throw new InvalidOperationException();
+            }
+        }
+
+        private void ReHashing()
+        {
+            int newSize = (addCount - deleteCount) * 5 + DefaultCapacity;
+            Entry[] newTable = new Entry[newSize];
+            addCount = 0;
+            deleteCount = 0;
+
+            foreach (Entry entry in table)
+            {
+                TKey key = entry.key;
+                TValue value = entry.value;
+
+                int index = Math.Abs(key.GetHashCode() % newTable.Length);
+                while (true)
+                {
+                    if (newTable[index].state == Entry.State.None)
+                    {
+                        break;
+                    }
+
+                    index = (index + 1) % table.Length;
+                }
+
+                newTable[index].state = Entry.State.Using;
+                newTable[index].key = key;
+                newTable[index].value = value;
+                addCount++;
+            }
+
+            table = newTable;
         }
     }
 }
